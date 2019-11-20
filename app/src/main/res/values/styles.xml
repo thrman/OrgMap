@@ -1,0 +1,37 @@
+<resources>
+
+    <!-- Base application theme. -->
+    <style name="AppTheme" parent="Theme.AppCompat.Light.DarkActionBar">
+        <!-- Customize your theme here. -->
+        <item name="colorPrimary">@color/colorPrimary</item>
+        <item name="colorPrimaryDark">@color/colorPrimaryDark</item>
+        <item name="colorAccent">@color/colorAccent</item>
+    </style>
+
+    <declare-styleable name="OrgMapView" >
+        <!--绘制项的宽度-->
+        <attr name="item_width" format="dimension|reference" />
+        <!--item的高度-->
+        <attr name="item_height" format="dimension|reference" />
+        <!--item 横向间距-->
+        <attr name="item_margin_h" format="dimension|reference" />
+        <!--item 纵向间距-->
+        <attr name="item_margin_v" format="dimension|reference" />
+        <!--item 内容间距-纵向-->
+        <attr name="item_padding_v" format="dimension|reference" />
+        <attr name="item_line1_margin_top" format="dimension|reference" />
+        <attr name="item_margin_to_line" format="dimension|reference" />
+        <!--item 圆角大小-->
+        <attr name="item_raidus" format="dimension|reference" />
+        <!--item 默认背景色-->
+        <attr name="item_bgcolor" format="color|reference" />
+        <!--item 选中背景色-->
+        <attr name="item_bgcolor_selected" format="color|reference" />
+        <!--item 字体颜色-->
+        <attr name="item_textcolor" format="color|reference" />
+        <!--item 选中的背景颜色-->
+        <attr name="item_textcolor_selected" format="color|reference" />
+        <!--item 字体大小-->
+        <attr name="item_textsize" format="dimension|reference" />
+    </declare-styleable>
+</resources>
