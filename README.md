@@ -13,7 +13,8 @@
  5. 支持**手势**滑动、缩放；
  6. **缩放**比例最大值，最小值；
 
-
+## 设计稿如下
+![Alt](https://img-blog.csdnimg.cn/20191120141843173.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3dhbmdzZjc4OQ==,size_16,color_FFFFFF,t_30##pic_center =270x480)
 
 
 ## 实现思路
