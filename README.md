@@ -14,7 +14,7 @@
  6. **缩放**比例最大值，最小值；
 
 ## 设计稿如下
-![Alt](https://img-blog.csdnimg.cn/20191120141843173.png?x-oss-process=image/format,png#pic_center =270x480)
+![Alt](https://img-blog.csdnimg.cn/20191120141843173.png?x-oss-process=image/format,png#pic_center=270x480)
 
 
 ## 实现思路
