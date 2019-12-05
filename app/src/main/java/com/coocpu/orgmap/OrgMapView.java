@@ -268,6 +268,18 @@ public class OrgMapView extends View {
         drawHeight = totalHeight + totalLineCount * itemMarginV + screenTools.dp2px(32);
         realDrawWidth = drawWidth;
         realDrawHeight = drawHeight;
+
+        mRealWidth = Math.max(drawWidth, mWidth);
+        mRealHigh = Math.max(drawHeight, mHeight);
+
+        if (mWidth != 0 && mOptTranslationX == 0) {
+            mOptTranslationY = mHeight / 2f - mRealHigh / 2f;
+            mTranslationY = 0;
+        }
+        mOptTranslationX = mWidth / 2f - mRealWidth / 2f;
+        mTranslationX = mOptTranslationX;
+        /*随着横竖屏切换，重新计算最小缩放比例*/
+        mZoomMini = Math.min(mWidth / mRealWidth, mHeight / mRealHigh);
         invalidate();
     }
 
