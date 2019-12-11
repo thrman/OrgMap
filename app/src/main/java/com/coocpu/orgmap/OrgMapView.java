@@ -147,9 +147,23 @@ public class OrgMapView extends View {
     MorgDataBean data;
     /**
      * 解析数据源
-     * 总列数-横向
+     * 总列数-横向 数据源实际总列数
      */
     private int totalRowCount = 0;
+    /**
+     * 为了居中显示 占位的总列数
+     */
+    private int drawRealTotalRowCount = 0;
+    /**
+     * 是否需要右移
+     * 为了居中画各个item项 如果顶部item项居于所有项的偏右则不需要移动 画布右侧自动空白；如果顶部item项居于所有项偏左则花item项的时候需要右移
+     */
+    private boolean needMoveRight = false;
+    /**
+     * 右移项 数量
+     * needMoveRight=true 时生效
+     */
+    private float moveRightItemCount = 0;
     /**
      * 解析数据源
      * 总行数-纵向
@@ -244,6 +258,9 @@ public class OrgMapView extends View {
     public void setData(MorgDataBean data) {
         totalLineCount = 0;
         totalRowCount = 0;
+        drawRealTotalRowCount = 0;
+        moveRightItemCount = 0;
+        needMoveRight = false;
         this.data = data;
         paraseDataLineAndLastNodeRow(this.data);
         if (totalLineCount > 0) {
@@ -257,8 +274,18 @@ public class OrgMapView extends View {
         contentMaxLength4line = new int[totalLineCount];
         contentMaxHeigth4line = new float[totalLineCount];
         paraseDataContentMaxLength4Line(this.data);
-        Log.e("----- 遍历之后的每行最大字符数=", Arrays.toString(contentMaxLength4line));
-        drawWidth = totalRowCount * itemWidth + (totalRowCount + 1) * itemMarginH;
+
+        if (data != null) {
+            Log.e("111111111111","rootRow="+data.getCurrentRow()+";totalRowCount="+totalRowCount+";totalLineCount="+totalLineCount);
+        }
+
+        drawRealTotalRowCount = (int) (2 * Math.floor(Math.max(data.getCurrentRow(), totalRowCount-data.getCurrentRow())));
+        needMoveRight = data.getCurrentRow() < totalRowCount/2.0;
+        if (needMoveRight) {
+            moveRightItemCount = drawRealTotalRowCount - totalRowCount;
+        }
+
+        drawWidth = drawRealTotalRowCount * itemWidth + (drawRealTotalRowCount + 1) * itemMarginH;
 
 
         float totalHeight = 0;
@@ -346,7 +373,7 @@ public class OrgMapView extends View {
             for (float f : contentMaxHeigth4line) {
                 totalHeight += f;
             }
-            retSize = b ? (totalRowCount + 1) * itemMarginH + totalRowCount * itemWidth : (int) (totalLineCount * itemMarginV + totalHeight + screenTools.dp2px(32));
+            retSize = b ? (drawRealTotalRowCount + 1) * itemMarginH + drawRealTotalRowCount * itemWidth : (int) (totalLineCount * itemMarginV + totalHeight + screenTools.dp2px(32));
             if (specMode == MeasureSpec.UNSPECIFIED) {
                 retSize = Math.min(retSize, specSize);
             }
@@ -402,9 +429,17 @@ public class OrgMapView extends View {
         if (data != null) {
             if (data.getCurrentLine() > 0) {
                 /*画出 非root公司*/
-                float sX = (data.getCurrentRow() - 1) * itemWidth + data.getCurrentRow() * itemMarginH /*+ itemMarginH*/;
-                if (realDrawWidth < mRealWidth) {
-                    sX += mRealWidth / 2.0f - realDrawWidth / 2.0f - mTranslationX;
+                float sX = (data.getCurrentRow() - 1) * itemWidth + data.getCurrentRow() * itemMarginH;
+                if (totalRowCount == 1) {
+                    sX = mRealWidth / 2.0f - itemWidth/2.0f;
+                } else {
+                    /*需要右移的情况*/
+                    if (needMoveRight) {
+                        sX += moveRightItemCount * (itemWidth + itemMarginH);
+                    }
+                    if (realDrawWidth < mRealWidth) {
+                        sX += mRealWidth / 2.0f - realDrawWidth / 2.0f - mTranslationX;
+                    }
                 }
                 float totalHeight = 0;
                 for (int i = 0; i < data.getCurrentLine(); i++) {
@@ -703,18 +738,34 @@ public class OrgMapView extends View {
         path.reset();
         float sX = (data.getChilds().get(0).getCurrentRow() - 1) * itemWidth + data.getChilds().get(0).getCurrentRow() * itemMarginH/* + itemMarginH */ + itemWidth / 2.0f;
 
+        if (totalRowCount == 1) {
+            sX = mRealWidth / 2.0f;
+        } else {
+            /*需要右移的情况*/
+            if (needMoveRight) {
+                sX += moveRightItemCount * (itemWidth + itemMarginH);
+            }
+            if (realDrawWidth < mRealWidth) {
+                sX += mRealWidth / 2.0f - realDrawWidth / 2.0f;
+            }
+        }
         float totalHeight = 0;
         for (int i = 0; i < data.getChilds().get(0).getCurrentLine(); i++) {
             totalHeight += contentMaxHeigth4line[i];
         }
         float sY = totalHeight + data.getChilds().get(0).getCurrentLine() * itemMarginV + screenTools.dp2px(32) - itemMarginToLine;
-        float eX = (data.getChilds().get(data.getChilds().size() - 1).getCurrentRow() - 1) * itemWidth + data.getChilds().get(data.getChilds().size() - 1).getCurrentRow() * itemMarginH /*+ itemMarginH*/ + itemWidth / 2.0f;
-
-        if (realDrawWidth < mRealWidth) {
-            sX += mRealWidth / 2.0f - realDrawWidth / 2.0f;
-            eX += mRealWidth / 2.0f - realDrawWidth / 2.0f;
+        float eX = (data.getChilds().get(data.getChilds().size() - 1).getCurrentRow() - 1) * itemWidth + data.getChilds().get(data.getChilds().size() - 1).getCurrentRow() * itemMarginH + itemWidth / 2.0f;
+        if (totalRowCount == 1) {
+            eX = mRealWidth / 2.0f;
+        } else {
+            /*需要右移的情况*/
+            if (needMoveRight) {
+                eX += moveRightItemCount * (itemWidth + itemMarginH);
+            }
+            if (realDrawWidth < mRealWidth) {
+                eX += mRealWidth / 2.0f - realDrawWidth / 2.0f;
+            }
         }
-
         path.moveTo(sX, sY);
         path.lineTo(sX, sY - (itemMarginV - 2 * itemMarginToLine) / 2.0f);
         path.lineTo(eX, sY - (itemMarginV - 2 * itemMarginToLine) / 2.0f);
@@ -742,18 +793,32 @@ public class OrgMapView extends View {
             path = new Path();
         }
         path.reset();
-        float sX = (start.getCurrentRow() - 1) * itemWidth + start.getCurrentRow() * itemMarginH /*+ itemMarginH*/ + itemWidth / 2.0f;
-
-        if (realDrawWidth < mRealWidth) {
-            sX += mRealWidth / 2.0f - realDrawWidth / 2.0f - mTranslationX;
+        float sX = (start.getCurrentRow() - 1) * itemWidth + start.getCurrentRow() * itemMarginH + itemWidth / 2.0f;
+        if (totalRowCount == 1) {
+            sX = mRealWidth / 2.0f;
+        } else {
+            /*需要右移的情况*/
+            if (needMoveRight) {
+                sX += moveRightItemCount * (itemWidth + itemMarginH);
+            }
+            if (realDrawWidth < mRealWidth) {
+                sX += mRealWidth / 2.0f - realDrawWidth / 2.0f - mTranslationX;
+            }
         }
-
         float totalHeight = 0;
         for (int i = 0; i < start.getCurrentLine(); i++) {
             totalHeight += contentMaxHeigth4line[i];
         }
         float sY = totalHeight + start.getCurrentLine() * itemMarginV + screenTools.dp2px(32) - itemMarginToLine;
-        float eX = (end.getCurrentRow() - 1) * itemWidth + end.getCurrentRow() * itemMarginH /*+ itemMarginH*/ + itemWidth / 2.0f;
+        float eX = (end.getCurrentRow() - 1) * itemWidth + end.getCurrentRow() * itemMarginH + itemWidth / 2.0f;
+        /*需要右移的情况*/
+        if (totalRowCount == 1) {
+            eX = mRealWidth / 2.0f;
+        } else {
+            if (needMoveRight) {
+                eX += moveRightItemCount * (itemWidth + itemMarginH);
+            }
+        }
         path.moveTo(sX, sY);
         path.lineTo(sX, sY - (itemMarginV - 2 * itemMarginToLine) / 2.0f);
         path.lineTo(eX, sY - (itemMarginV - 2 * itemMarginToLine) / 2.0f);
@@ -867,14 +932,23 @@ public class OrgMapView extends View {
     private void paraseSelectedItem(MorgDataBean data, float x, float y) {
         if (data != null) {
             float sX = (data.getCurrentRow() - 1) * itemWidth + data.getCurrentRow() * itemMarginH;
+            if (totalRowCount == 1) {
+                sX = mRealWidth / 2.0f - itemWidth/2.0f;
+            } else {
+                /*需要右移的情况*/
+                if (needMoveRight) {
+                    sX += moveRightItemCount * (itemWidth + itemMarginH);
+                }
+                if (realDrawWidth < mRealWidth) {
+                    sX += mRealWidth / 2.0f - realDrawWidth / 2.0f;
+                }
+            }
             float totalHeight = 0;
             for (int i = 0; i < data.getCurrentLine(); i++) {
                 totalHeight += contentMaxHeigth4line[i];
             }
             float sY = totalHeight + data.getCurrentLine() * itemMarginV + screenTools.dp2px(32);
-            if (realDrawWidth < mRealWidth) {
-                sX += mRealWidth / 2.0f - realDrawWidth / 2.0f;
-            }
+
             if ((x > sX && x < sX + itemWidth && y > sY && y < sY + contentMaxHeigth4line[data.getCurrentLine()])) {
                 /*点击点 为非空白区域， 重置所有数据为非选中状态， 然后标记当前项为选中状态*/
                 /*如果有选中 则将原数据重置为非选中*/
