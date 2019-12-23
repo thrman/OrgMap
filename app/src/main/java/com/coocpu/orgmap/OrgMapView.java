@@ -43,11 +43,11 @@ public class OrgMapView extends View {
     private float mZoom = 1f;
 
     /**
-     * 最小缩放比例
+     * 最小缩放(如:1-0.5,0.5-0.25...)
      */
     private static final float S_ZOOM_MINI = 0.60000001f;
     /**
-     * 最大缩放比例
+     * 最大缩放(如:1-2,2-4...)
      */
     private static final float S_ZOOM_MAX = 0.9999999f;
 
@@ -153,7 +153,7 @@ public class OrgMapView extends View {
     /**
      * 为了居中显示 占位的总列数
      */
-    private int drawRealTotalRowCount = 0;
+    private float drawRealTotalRowCount = 0;
     /**
      * 是否需要右移
      * 为了居中画各个item项 如果顶部item项居于所有项的偏右则不需要移动 画布右侧自动空白；如果顶部item项居于所有项偏左则花item项的时候需要右移
@@ -276,16 +276,16 @@ public class OrgMapView extends View {
         paraseDataContentMaxLength4Line(this.data);
 
         if (data != null) {
-            Log.e("111111111111","rootRow="+data.getCurrentRow()+";totalRowCount="+totalRowCount+";totalLineCount="+totalLineCount);
+            Log.e("111111111111", "rootRow=" + data.getCurrentRow() + ";totalRowCount=" + totalRowCount + ";totalLineCount=" + totalLineCount);
         }
 
-        drawRealTotalRowCount = (int) (2 * Math.floor(Math.max(data.getCurrentRow(), totalRowCount-data.getCurrentRow())));
-        needMoveRight = data.getCurrentRow() < totalRowCount/2.0;
+        drawRealTotalRowCount = 2.0f * (Math.max(data.getCurrentRow(), totalRowCount - data.getCurrentRow()) - 1) + 1;
+        needMoveRight = data.getCurrentRow() < totalRowCount / 2.0f;
         if (needMoveRight) {
             moveRightItemCount = drawRealTotalRowCount - totalRowCount;
         }
 
-        drawWidth = drawRealTotalRowCount * itemWidth + (drawRealTotalRowCount + 1) * itemMarginH;
+        drawWidth = drawRealTotalRowCount * (itemWidth +itemMarginH) +  itemMarginH;
 
 
         float totalHeight = 0;
@@ -295,6 +295,7 @@ public class OrgMapView extends View {
         drawHeight = totalHeight + totalLineCount * itemMarginV + screenTools.dp2px(32);
         realDrawWidth = drawWidth;
         realDrawHeight = drawHeight;
+
 
         mRealWidth = Math.max(drawWidth, mWidth);
         mRealHigh = Math.max(drawHeight, mHeight);
@@ -373,7 +374,7 @@ public class OrgMapView extends View {
             for (float f : contentMaxHeigth4line) {
                 totalHeight += f;
             }
-            retSize = b ? (drawRealTotalRowCount + 1) * itemMarginH + drawRealTotalRowCount * itemWidth : (int) (totalLineCount * itemMarginV + totalHeight + screenTools.dp2px(32));
+            retSize = b ? (int) ((drawRealTotalRowCount + 1) * itemMarginH + drawRealTotalRowCount * itemWidth) : (int) (totalLineCount * itemMarginV + totalHeight + screenTools.dp2px(32));
             if (specMode == MeasureSpec.UNSPECIFIED) {
                 retSize = Math.min(retSize, specSize);
             }
@@ -386,17 +387,33 @@ public class OrgMapView extends View {
         super.onSizeChanged(w, h, oldw, oldh);
         this.mWidth = w;
         this.mHeight = h;
-        mRealWidth = Math.max(drawWidth, mWidth);
-        mRealHigh = Math.max(drawHeight, mHeight);
+        if (data != null) {
+            drawRealTotalRowCount = 2.0f * (Math.max(data.getCurrentRow(), totalRowCount - data.getCurrentRow()) - 1) + 1;
+            needMoveRight = data.getCurrentRow() < totalRowCount / 2.0;
+            if (needMoveRight) {
+                moveRightItemCount = drawRealTotalRowCount - totalRowCount;
+            }
+            drawWidth = drawRealTotalRowCount * (itemWidth + itemMarginH) + itemMarginH;
 
-        if (mWidth != 0 && mOptTranslationX == 0) {
-            mOptTranslationY = mHeight / 2f - mRealHigh / 2f;
-            mTranslationY = 0;
+            float totalHeight = 0;
+            for (float f : contentMaxHeigth4line) {
+                totalHeight += f;
+            }
+            drawHeight = totalHeight + totalLineCount * itemMarginV + screenTools.dp2px(32);
+            realDrawWidth = drawWidth;
+            realDrawHeight = drawHeight;
+            mRealWidth = Math.max(drawWidth, mWidth);
+            mRealHigh = Math.max(drawHeight, mHeight);
+
+            if (mWidth != 0 && mOptTranslationX == 0) {
+                mOptTranslationY = mHeight / 2f - mRealHigh / 2f;
+                mTranslationY = 0;
+            }
+            mOptTranslationX = mWidth / 2f - mRealWidth / 2f;
+            mTranslationX = mOptTranslationX;
+            /*随着横竖屏切换，重新计算最小缩放比例*/
+            mZoomMini = Math.min(mWidth / mRealWidth, mHeight / mRealHigh);
         }
-        mOptTranslationX = mWidth / 2f - mRealWidth / 2f;
-        mTranslationX = mOptTranslationX;
-        /*随着横竖屏切换，重新计算最小缩放比例*/
-        mZoomMini = Math.min(mWidth / mRealWidth, mHeight / mRealHigh);
     }
 
     @Override
@@ -430,15 +447,31 @@ public class OrgMapView extends View {
             if (data.getCurrentLine() > 0) {
                 /*画出 非root公司*/
                 float sX = (data.getCurrentRow() - 1) * itemWidth + data.getCurrentRow() * itemMarginH;
+
+                /*数据源只有一列*/
                 if (totalRowCount == 1) {
-                    sX = mRealWidth / 2.0f - itemWidth/2.0f;
+                    sX = mRealWidth / 2.0f - itemWidth / 2.0f;
                 } else {
                     /*需要右移的情况*/
                     if (needMoveRight) {
-                        sX += moveRightItemCount * (itemWidth + itemMarginH);
+                        sX += (moveRightItemCount + 1) * (itemWidth + itemMarginH);
                     }
                     if (realDrawWidth < mRealWidth) {
-                        sX += mRealWidth / 2.0f - realDrawWidth / 2.0f - mTranslationX;
+                        if (mWidth < mHeight) {//纵屏
+                            if (realDrawWidth >= mWidth) {
+                                sX += mRealWidth / 2.0f - realDrawWidth / 2.0f - mTranslationX + (itemWidth + itemMarginH) / 2.0f;
+                            } else {
+                                sX += mRealWidth / 2.0f - realDrawWidth / 2.0f - mTranslationX;
+                            }
+                        } else {
+                            sX += mRealWidth / 2.0f - realDrawWidth / 2.0f - mTranslationX;
+                        }
+                    } else {
+//                        if (mWidth < mHeight) {//纵屏
+//                            if (realDrawWidth >= mWidth) {
+//                                sX += (itemWidth + itemMarginH);
+//                            }
+//                        }
                     }
                 }
                 float totalHeight = 0;
@@ -448,9 +481,11 @@ public class OrgMapView extends View {
                 float sY = totalHeight + data.getCurrentLine() * itemMarginV + screenTools.dp2px(32);
                 drawItem(canvas, sX, sY, data, data.isSelected());
             } else {
+                /*画root公司*/
                 drawRootItem(canvas, data);
             }
             if ((data.getChilds() == null || data.getChilds().size() == 0)) {
+                //return;
             } else {
                 int i = 0;
                 for (MorgDataBean d : data.getChilds()) {
@@ -489,6 +524,7 @@ public class OrgMapView extends View {
             //第一次按下
             case MotionEvent.ACTION_DOWN:
                 //记录只为单手移动算移动距离
+                Log.e(")))))", "event.getX=" + event.getX() + ";event.getY=" + event.getY());
                 touchDownTime = System.currentTimeMillis();
                 mMode = 1;
                 isClick = true;
@@ -502,7 +538,7 @@ public class OrgMapView extends View {
                 mTagTranslateY = 0f;
                 if (isClick) {
                     //单击事件处理
-                    float x = mWidth / mZoom - mOriginX - (mWidth - event.getX()) / mZoom /*- itemMarginH / mZoom */;
+                    float x = mWidth / mZoom - mOriginX - (mWidth - event.getX()) / mZoom;
                     if (drawWidth < mRealWidth) {
                         x = x + mTranslationX / 2.0f;
                     }
@@ -555,7 +591,7 @@ public class OrgMapView extends View {
                         invalidate();
                         break;
                     }
-                    if (mTagTranslateX != 0) {
+                    if (mTagTranslateX != 0/* && mTagTranslateY != 0*/) {
                         /**
                          * 保证临界边 在可视屏幕内
                          */
@@ -570,13 +606,13 @@ public class OrgMapView extends View {
                                 } else {
 
                                 }
-                            } else if ((mOriginX + mRealWidth) < mWidth / mZoom) {//向左滑动 右边临界超越界限进入可视屏幕内
+                            } else if ((mOriginX + mRealWidth + (needMoveRight?(moveRightItemCount + 1)*(itemWidth + itemMarginH) :0)) < mWidth / mZoom) {//向左滑动 右边临界超越界限进入可视屏幕内
                                 if (realDrawWidth * mZoom < mWidth) {
                                     break;
                                 }
                                 if (mZoom > mZoomMini) {/*非最小情况*/
-                                    mTranslationX += mWidth / mZoom - mOriginX - mRealWidth;
-                                    mOriginX = -mRealWidth;
+                                    mTranslationX += mWidth / mZoom - mOriginX - mRealWidth - (needMoveRight?(moveRightItemCount+1)*(itemWidth + itemMarginH) :0);
+                                    mOriginX -= mRealWidth + (needMoveRight?(moveRightItemCount+1)*(itemWidth + itemMarginH) :0);
                                     mTagTranslateX = (event.getX() - mTranslationX * mZoom);
                                 }
                             }
@@ -660,7 +696,7 @@ public class OrgMapView extends View {
      * @param isSelected 是否是选中状态
      */
     private void drawItem(Canvas canvas, float sX, float sY, MorgDataBean data, boolean isSelected) {
-        if (TextUtils.isEmpty(data.getOrgname()) || data.getOrgname().trim().length() == 0) {
+        if (isEmpty(data.getOrgnameShow()) || data.getOrgnameShow().trim().length() == 0) {
             return;
         }
         itemBgPaint.setColor(isSelected ? itemBGColorSelected : itemBGColor);
@@ -679,10 +715,13 @@ public class OrgMapView extends View {
          * descent 正数，基线下方，绘制文字底部(非绘制占用空间的底部)
          * */
         Paint.FontMetrics fontMetrics = itemTextPaint.getFontMetrics();
+//        float ascent = fontMetrics.ascent;
+//        float descent = fontMetrics.descent;
         float top = fontMetrics.top;
         float bottom = fontMetrics.bottom;
+//        float leading = fontMetrics.leading;
         Rect r = new Rect();
-        int contentLength = data.getOrgname().length();
+        int contentLength = data.getOrgnameShow().length();
         /*绘制内容总高度*/
         int totalContentHeight = 0;
         for (int i = 0; i < contentLength; i++) {
@@ -691,8 +730,8 @@ public class OrgMapView extends View {
         /*内容绘制的开始y坐标*/
         float indexSY = sY + (contentMaxHeigth4line[data.getCurrentLine()] - totalContentHeight) / 2.0f;
         for (int i = 0; i < contentLength; i++) {
-            itemTextPaint.getTextBounds(String.valueOf(data.getOrgname().charAt(i)), 0, 1, r);
-            canvas.drawText(String.valueOf(data.getOrgname().charAt(i)), sX + (itemWidth - r.width()) / 2.0f, indexSY + Math.abs(fontMetrics.top), itemTextPaint);
+            itemTextPaint.getTextBounds(String.valueOf(data.getOrgnameShow().charAt(i)), 0, 1, r);
+            canvas.drawText(String.valueOf(data.getOrgnameShow().charAt(i)), sX + (itemWidth - r.width()) / 2.0f, indexSY + Math.abs(fontMetrics.top), itemTextPaint);
             indexSY += bottom - top;
         }
     }
@@ -711,7 +750,7 @@ public class OrgMapView extends View {
         Typeface font = Typeface.create(Typeface.SANS_SERIF, Typeface.BOLD);
         itemTextPaint.setTypeface(font);
         Rect r = new Rect();
-        itemTextPaint.getTextBounds(data.getOrgname(), 0, data.getOrgname().length(), r);
+        itemTextPaint.getTextBounds(data.getOrgnameShow(), 0, data.getOrgnameShow().length(), r);
         sY = screenTools.dp2px(32);
         if (realDrawWidth < mRealWidth) {
             sX = mRealWidth / 2.0f - r.width() / 2.0f - mTranslationX;
@@ -719,7 +758,7 @@ public class OrgMapView extends View {
             sX = mRealWidth / 2.0f - r.width() / 2.0f;
         }
 
-        canvas.drawText(data.getOrgname(), sX, sY, itemTextPaint);
+        canvas.drawText(data.getOrgnameShow(), sX, sY, itemTextPaint);
     }
 
     /**
@@ -736,17 +775,25 @@ public class OrgMapView extends View {
             path = new Path();
         }
         path.reset();
-        float sX = (data.getChilds().get(0).getCurrentRow() - 1) * itemWidth + data.getChilds().get(0).getCurrentRow() * itemMarginH/* + itemMarginH */ + itemWidth / 2.0f;
+        float sX = (data.getChilds().get(0).getCurrentRow() - 1) * itemWidth + data.getChilds().get(0).getCurrentRow() * itemMarginH + itemWidth / 2.0f;
 
         if (totalRowCount == 1) {
             sX = mRealWidth / 2.0f;
         } else {
             /*需要右移的情况*/
             if (needMoveRight) {
-                sX += moveRightItemCount * (itemWidth + itemMarginH);
+                sX += (moveRightItemCount + 1) * (itemWidth + itemMarginH);
             }
             if (realDrawWidth < mRealWidth) {
-                sX += mRealWidth / 2.0f - realDrawWidth / 2.0f;
+                if (mWidth < mHeight) {//纵屏
+                    if (realDrawWidth >= mWidth) {
+                        sX += mRealWidth / 2.0f - realDrawWidth / 2.0f + (itemWidth + itemMarginH) / 2.0f;
+                    } else {
+                        sX += mRealWidth / 2.0f - realDrawWidth / 2.0f;
+                    }
+                } else {
+                    sX += mRealWidth / 2.0f - realDrawWidth / 2.0f;
+                }
             }
         }
         float totalHeight = 0;
@@ -758,12 +805,25 @@ public class OrgMapView extends View {
         if (totalRowCount == 1) {
             eX = mRealWidth / 2.0f;
         } else {
-            /*需要右移的情况*/
-            if (needMoveRight) {
-                eX += moveRightItemCount * (itemWidth + itemMarginH);
-            }
-            if (realDrawWidth < mRealWidth) {
-                eX += mRealWidth / 2.0f - realDrawWidth / 2.0f;
+            /*当前节点的 孩子节点只有一个的情况*/
+            if (data.getChilds().get(0).getCuuid().equalsIgnoreCase(data.getChilds().get(data.getChilds().size() - 1).getCuuid())) {
+                eX = sX;
+            } else {
+                /*需要右移的情况*/
+                if (needMoveRight) {
+                    eX += (moveRightItemCount + 1) * (itemWidth + itemMarginH);
+                }
+                if (realDrawWidth < mRealWidth) {
+                    if (mWidth < mHeight) {//纵屏
+                        if (realDrawWidth >= mWidth) {
+                            eX += mRealWidth / 2.0f - realDrawWidth / 2.0f + (itemWidth + itemMarginH) / 2.0f;
+                        } else {
+                            eX += mRealWidth / 2.0f - realDrawWidth / 2.0f;
+                        }
+                    } else {
+                        eX += mRealWidth / 2.0f - realDrawWidth / 2.0f;
+                    }
+                }
             }
         }
         path.moveTo(sX, sY);
@@ -799,10 +859,18 @@ public class OrgMapView extends View {
         } else {
             /*需要右移的情况*/
             if (needMoveRight) {
-                sX += moveRightItemCount * (itemWidth + itemMarginH);
+                sX += (moveRightItemCount + 1) * (itemWidth + itemMarginH);
             }
             if (realDrawWidth < mRealWidth) {
-                sX += mRealWidth / 2.0f - realDrawWidth / 2.0f - mTranslationX;
+                if (mWidth < mHeight) {//纵屏
+                    if (realDrawWidth >= mWidth) {
+                        sX += mRealWidth / 2.0f - realDrawWidth / 2.0f - mTranslationX + (itemWidth + itemMarginH) / 2.0f;
+                    } else {
+                        sX += mRealWidth / 2.0f - realDrawWidth / 2.0f - mTranslationX;
+                    }
+                } else {
+                    sX += mRealWidth / 2.0f - realDrawWidth / 2.0f - mTranslationX;
+                }
             }
         }
         float totalHeight = 0;
@@ -810,13 +878,33 @@ public class OrgMapView extends View {
             totalHeight += contentMaxHeigth4line[i];
         }
         float sY = totalHeight + start.getCurrentLine() * itemMarginV + screenTools.dp2px(32) - itemMarginToLine;
+
         float eX = (end.getCurrentRow() - 1) * itemWidth + end.getCurrentRow() * itemMarginH + itemWidth / 2.0f;
-        /*需要右移的情况*/
+        /*所有数据只有一列 的情况*/
         if (totalRowCount == 1) {
             eX = mRealWidth / 2.0f;
         } else {
-            if (needMoveRight) {
-                eX += moveRightItemCount * (itemWidth + itemMarginH);
+            /*当前节点的 孩子节点只有一个的情况*/
+            if (start.getCuuid().equalsIgnoreCase(end.getCuuid())) {
+                eX = sX;
+            } else {
+                /*需要右移的情况*/
+                if (needMoveRight) {
+                    eX += (moveRightItemCount + 1) * (itemWidth + itemMarginH);
+                }
+                if (!start.getCuuid().equalsIgnoreCase(end.getCuuid())) {
+                    if (realDrawWidth < mRealWidth) {
+                        if (mWidth < mHeight) {//纵屏
+                            if (realDrawWidth >= mWidth) {
+                                eX += mRealWidth / 2.0f - realDrawWidth / 2.0f + (itemWidth + itemMarginH) / 2.0f;
+                            } else {
+                                eX += mRealWidth / 2.0f - realDrawWidth / 2.0f;
+                            }
+                        } else {
+                            eX += mRealWidth / 2.0f - realDrawWidth / 2.0f;
+                        }
+                    }
+                }
             }
         }
         path.moveTo(sX, sY);
@@ -840,6 +928,14 @@ public class OrgMapView extends View {
             return;
         }
         for (MorgDataBean d : data.getChilds()) {
+            /*将名称截掉包含父公司名称的部分*/
+            if (!isEmpty(d.getOrgname()) && !isEmpty(data.getOrgname())) {
+                if (d.getOrgname().startsWith(data.getOrgname())) {
+                    d.setOrgnameShow(d.getOrgname().substring(data.getOrgname().length()));
+                } else {
+                    d.setOrgnameShow(d.getOrgname());
+                }
+            }
             /*自己所处的行数=父节点所在的行数+1
              从上到下的顺序*/
             d.setCurrentLine(data.getCurrentLine() + 1);
@@ -888,8 +984,8 @@ public class OrgMapView extends View {
             return;
         }
         for (MorgDataBean d : data.getChilds()) {
-            if (!isEmpty(d.getOrgname()) && contentMaxLength4line.length > d.getCurrentLine()) {
-                contentMaxLength4line[d.getCurrentLine()] = Math.max(contentMaxLength4line[d.getCurrentLine()], d.getOrgname().trim().length());
+            if (!isEmpty(d.getOrgnameShow()) && contentMaxLength4line.length > d.getCurrentLine()) {
+                contentMaxLength4line[d.getCurrentLine()] = Math.max(contentMaxLength4line[d.getCurrentLine()], d.getOrgnameShow().trim().length());
                 contentMaxHeigth4line[d.getCurrentLine()] = getTotalContentHeight(contentMaxLength4line[d.getCurrentLine()]);
             }
             if (d.getChilds() != null && d.getChilds().size() > 0) {
@@ -933,14 +1029,23 @@ public class OrgMapView extends View {
         if (data != null) {
             float sX = (data.getCurrentRow() - 1) * itemWidth + data.getCurrentRow() * itemMarginH;
             if (totalRowCount == 1) {
-                sX = mRealWidth / 2.0f - itemWidth/2.0f;
+                sX = mRealWidth / 2.0f - itemWidth / 2.0f;
             } else {
                 /*需要右移的情况*/
                 if (needMoveRight) {
-                    sX += moveRightItemCount * (itemWidth + itemMarginH);
+                    sX += (moveRightItemCount + 1) * (itemWidth + itemMarginH);
                 }
                 if (realDrawWidth < mRealWidth) {
-                    sX += mRealWidth / 2.0f - realDrawWidth / 2.0f;
+                    if (mWidth < mHeight) {//纵屏
+
+                        if (realDrawWidth >= mWidth) {
+                            sX += mRealWidth / 2.0f - realDrawWidth / 2.0f + (itemWidth + itemMarginH) / 2.0f;
+                        } else {
+                            sX += mRealWidth / 2.0f - realDrawWidth / 2.0f;
+                        }
+                    } else {
+                        sX += mRealWidth / 2.0f - realDrawWidth / 2.0f;
+                    }
                 }
             }
             float totalHeight = 0;

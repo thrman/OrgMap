@@ -26,6 +26,12 @@ public class MorgDataBean implements Parcelable {
     private String orgcode;
     /*公司名称*/
     private String orgname;
+    /**
+     * 自定义参数
+     * 用于截掉父公司名称后的精简名称
+     */
+    private String orgnameShow;
+
     private String orgplace;
     private String parentUuid;
     private int type;
@@ -72,10 +78,7 @@ public class MorgDataBean implements Parcelable {
     public MorgDataBean() {
     }
 
-    public MorgDataBean(List<MorgDataBean> childs, int cid, String cuuid, String dn, String img,
-                        int isenable, int isvalid, String note, String orgcode, String orgname,
-                        String orgplace, String parentUuid, int type, String userid, float currentRow,
-                        int currentLine, boolean selected) {
+    public MorgDataBean(List<MorgDataBean> childs, int cid, String cuuid, String dn, String img, int isenable, int isvalid, String note, String orgcode, String orgname, String orgnameShow, String orgplace, String parentUuid, int type, String userid, float currentRow, int currentLine, boolean selected) {
         this.childs = childs;
         this.cid = cid;
         this.cuuid = cuuid;
@@ -86,6 +89,7 @@ public class MorgDataBean implements Parcelable {
         this.note = note;
         this.orgcode = orgcode;
         this.orgname = orgname;
+        this.orgnameShow = orgnameShow;
         this.orgplace = orgplace;
         this.parentUuid = parentUuid;
         this.type = type;
@@ -207,6 +211,14 @@ public class MorgDataBean implements Parcelable {
         this.childs = childs;
     }
 
+    public String getOrgnameShow() {
+        return orgnameShow;
+    }
+
+    public void setOrgnameShow(String orgnameShow) {
+        this.orgnameShow = orgnameShow;
+    }
+
     @Override
     public int describeContents() {
         return 0;
@@ -231,6 +243,7 @@ public class MorgDataBean implements Parcelable {
         dest.writeFloat(this.currentRow);
         dest.writeInt(this.currentLine);
         dest.writeByte(this.selected ? (byte) 1 : (byte) 0);
+        dest.writeString(this.orgnameShow);
     }
 
     protected MorgDataBean(Parcel in) {
@@ -252,6 +265,7 @@ public class MorgDataBean implements Parcelable {
         this.currentRow = in.readFloat();
         this.currentLine = in.readInt();
         this.selected = in.readByte() != 0;
+        this.orgnameShow = in.readString();
     }
 
     public static final Creator<MorgDataBean> CREATOR = new Creator<MorgDataBean>() {
