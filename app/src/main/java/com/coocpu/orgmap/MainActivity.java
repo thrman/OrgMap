@@ -27,6 +27,7 @@ public class MainActivity extends AppCompatActivity {
         String val = orgMapView.getOriginalFundData(this);
         Gson gson = new Gson();
         MorgDataBean data = gson.fromJson(val, MorgDataBean.class);
+        data.setOrgnameShow(data.getOrgname());
         orgMapView.setData(data);
     }
 
